@@ -21,10 +21,11 @@ public class ProductOption {
     private Product product;
 
     /** 옵션 축 이름 (색상, 사이즈 ...) */
-    @Column(nullable = false, length = 100)
+    @Column(name = "option_name", nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 200)
+    // VALUE 는 H2/MySQL 예약어라 컬럼명을 분리한다
+    @Column(name = "option_value", nullable = false, length = 200)
     private String value;
 
     @Column(name = "extra_price", precision = 15, scale = 2)
