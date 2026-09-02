@@ -4,10 +4,12 @@ import io.github.jaehyeoksim.sourcing.catalog.domain.Product;
 import io.github.jaehyeoksim.sourcing.collect.domain.CollectJob;
 import io.github.jaehyeoksim.sourcing.collect.domain.JobStatus;
 import io.github.jaehyeoksim.sourcing.collect.service.CollectJobService;
+import io.github.jaehyeoksim.sourcing.collect.service.SubmitOutcome;
 import io.github.jaehyeoksim.sourcing.collect.web.JobDtos.EnqueueRequest;
 import io.github.jaehyeoksim.sourcing.collect.web.JobDtos.FailureRequest;
 import io.github.jaehyeoksim.sourcing.collect.web.JobDtos.JobResponse;
 import io.github.jaehyeoksim.sourcing.collect.web.JobDtos.ProductResponse;
+import io.github.jaehyeoksim.sourcing.collect.web.JobDtos.RejectedResponse;
 import io.github.jaehyeoksim.sourcing.collect.web.JobDtos.ResultRequest;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -51,15 +53,23 @@ public class CollectJobController {
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
+    /**
+     * 수집 결과 제출. 정규화까지 성공하면 200, 원본을 해석할 수 없으면 422 로 구분해 돌려준다.
+     * 워커는 상태 코드만 보고 "재시도 의미 없음"을 판단한다.
+     */
     @PostMapping("/{id}/result")
-    public ProductResponse submitResult(@PathVariable Long id, @Valid @RequestBody ResultRequest request) {
-        Product product = service.submitResult(id, request.workerId(), request.payload());
-        return new ProductResponse(
-                product.getId(),
-                product.getSiteCode(),
-                product.getExternalId(),
-                product.getTitle(),
-                product.getOptions().size());
+    public ResponseEntity<?> submitResult(@PathVariable Long id, @Valid @RequestBody ResultRequest request) {
+        return switch (service.submitResult(id, request.workerId(), request.payload())) {
+            case SubmitOutcome.Succeeded(Product product) -> ResponseEntity.ok(new ProductResponse(
+                    product.getId(),
+                    product.getSiteCode(),
+                    product.getExternalId(),
+                    product.getTitle(),
+                    product.getOptions().size()));
+            case SubmitOutcome.Rejected(var job, var reason) -> ResponseEntity
+                    .unprocessableEntity()
+                    .body(new RejectedResponse(job.getId(), job.getStatus(), reason));
+        };
     }
 
     @PostMapping("/{id}/failure")

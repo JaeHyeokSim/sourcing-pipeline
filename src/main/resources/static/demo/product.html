@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>데모 상품 상세</title>
+    <style>
+      body {
+        font: 14px/1.6 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+        max-width: 640px;
+        margin: 40px auto;
+        padding: 0 20px;
+        color: #1a1a1a;
+      }
+      .opt {
+        display: inline-block;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 6px 12px;
+        margin: 4px 4px 0 0;
+      }
+      .price {
+        font-size: 22px;
+        font-weight: 700;
+      }
+      .note {
+        margin-top: 28px;
+        padding: 12px;
+        background: #f6f8fa;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body data-product-id="demo-1001">
+    <!-- 확장의 범용 추출기가 읽는 구조. 실제 쇼핑몰이 심어두는 형태를 그대로 흉내냈다. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "sku": "demo-1001",
+        "name": "베이직 코튼 후드 집업",
+        "image": ["https://picsum.photos/seed/demo1001/600/600"],
+        "offers": { "@type": "Offer", "price": "128.00", "priceCurrency": "CNY" }
+      }
+    </script>
+
+    <h1>베이직 코튼 후드 집업</h1>
+    <p class="price" data-price="128.00">CNY 128.00</p>
+    <img data-product-image src="https://picsum.photos/seed/demo1001/600/600" alt="상품 이미지" width="320" />
+
+    <h2>옵션</h2>
+    <div>
+      <span class="opt" data-option="블랙" data-option-name="색상" data-option-stock="24">색상 · 블랙</span>
+      <span class="opt" data-option="아이보리" data-option-name="색상" data-option-stock="8">색상 · 아이보리</span>
+      <span class="opt" data-option="M" data-option-name="사이즈" data-option-stock="15">사이즈 · M</span>
+      <span class="opt" data-option="L" data-option-name="사이즈" data-option-stock="0">사이즈 · L</span>
+    </div>
+
+    <p class="note">
+      확장 없이 파이프라인만 확인하려면 이 페이지 대신 README 의 curl 예제를 쓰면 된다.
+      이 페이지는 확장이 실제 탭을 열어 추출하는 경로를 검증하기 위한 것이다.
+    </p>
+  </body>
+</html>

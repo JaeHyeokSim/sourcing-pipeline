@@ -94,10 +94,11 @@ public class CollectJobService {
     /**
      * 워커가 수집한 원본을 받아 정규화까지 진행한다.
      *
-     * @return 저장된 상품
+     * <p>정규화 실패는 예외로 던지지 않는다. 던지면 트랜잭션이 롤백되면서 방금 기록한
+     * FAILED 상태까지 되돌아가고, 작업이 RUNNING 으로 남아 동시 실행 슬롯을 계속 점유한다.
      */
     @Transactional
-    public Product submitResult(Long jobId, String workerId, JsonNode rawPayload) {
+    public SubmitOutcome submitResult(Long jobId, String workerId, JsonNode rawPayload) {
         CollectJob job = mustFind(jobId);
         if (job.getStatus() != JobStatus.RUNNING) {
             throw new IllegalStateException("RUNNING 상태가 아닌 작업입니다: " + job.getStatus());
@@ -112,15 +113,17 @@ public class CollectJobService {
         try {
             normalized = adapterRegistry.resolve(job.getSiteCode()).normalize(rawPayload, job.getSourceUrl());
         } catch (NormalizationException e) {
-            // 원본 구조 문제는 재시도해도 동일하므로 즉시 확정 실패로 처리한다.
-            job.failPermanently("정규화 실패: " + e.getMessage());
-            throw e;
+            // 원본 구조 문제는 재시도해도 동일하므로 시도 횟수와 무관하게 확정 실패로 둔다.
+            String reason = "정규화 실패: " + e.getMessage();
+            job.failPermanently(reason);
+            log.warn("작업 {} 정규화 실패 → 확정 실패 ({})", job.getId(), e.getMessage());
+            return new SubmitOutcome.Rejected(job, reason);
         }
 
         Product product = productUpsertService.upsert(normalized);
         job.succeed();
         log.info("작업 {} 성공 → 상품 {} ({})", job.getId(), product.getId(), product.getTitle());
-        return product;
+        return new SubmitOutcome.Succeeded(product);
     }
 
     /** 워커가 보고한 실패. 재시도 여지가 있으면 백오프 후 큐로 되돌린다. */

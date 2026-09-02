@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Sourcing Collector",
+  "version": "0.1.0",
+  "description": "상품 상세 페이지를 열어 수집하고 sourcing-pipeline 서버 큐에 결과를 제출하는 워커",
+  "permissions": ["tabs", "storage", "scripting"],
+  "host_permissions": [
+    "http://localhost:8080/*",
+    "https://item.taobao.com/*",
+    "https://detail.1688.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Sourcing Collector"
+  }
+}

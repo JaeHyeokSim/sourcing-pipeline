@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sourcing Collector</title>
+    <style>
+      body {
+        width: 280px;
+        margin: 0;
+        padding: 14px;
+        font: 13px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+        color: #1a1a1a;
+      }
+      h1 {
+        margin: 0 0 10px;
+        font-size: 14px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+      }
+      .row span:last-child {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        margin-top: 10px;
+        border: 1px solid #d0d0d0;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      button.on {
+        background: #1f6feb;
+        border-color: #1f6feb;
+        color: #fff;
+      }
+      #logs {
+        margin-top: 10px;
+        max-height: 130px;
+        overflow-y: auto;
+        border-top: 1px solid #eee;
+        padding-top: 8px;
+        font-size: 11px;
+        color: #555;
+      }
+      #logs div {
+        padding: 2px 0;
+      }
+      .muted {
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sourcing Collector</h1>
+    <div class="row"><span>워커</span><span id="worker" class="muted">-</span></div>
+    <div class="row"><span>대기</span><span id="pending">-</span></div>
+    <div class="row"><span>진행중</span><span id="running">-</span></div>
+    <div class="row"><span>완료</span><span id="succeeded">-</span></div>
+    <div class="row"><span>실패</span><span id="failed">-</span></div>
+    <button id="toggle">시작</button>
+    <div id="logs"></div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

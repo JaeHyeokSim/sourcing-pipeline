@@ -8,7 +8,6 @@ import io.github.jaehyeoksim.sourcing.catalog.repository.ProductRepository;
 import io.github.jaehyeoksim.sourcing.collect.domain.CollectJob;
 import io.github.jaehyeoksim.sourcing.collect.domain.JobStatus;
 import io.github.jaehyeoksim.sourcing.collect.repository.CollectJobRepository;
-import io.github.jaehyeoksim.sourcing.normalize.NormalizationException;
 import java.math.BigDecimal;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,7 +87,10 @@ class CollectJobServiceTest {
         CollectJob job = enqueue("900010");
         service.claimNext("w1");
 
-        Product product = service.submitResult(job.getId(), "w1", payload("900010", "테스트 상품", "12.34"));
+        SubmitOutcome outcome = service.submitResult(job.getId(), "w1", payload("900010", "테스트 상품", "12.34"));
+
+        assertThat(outcome).isInstanceOf(SubmitOutcome.Succeeded.class);
+        Product product = ((SubmitOutcome.Succeeded) outcome).product();
 
         assertThat(product.getTitle()).isEqualTo("테스트 상품");
         assertThat(product.getPriceAmount()).isEqualByComparingTo(new BigDecimal("12.34"));
@@ -124,8 +126,10 @@ class CollectJobServiceTest {
         service.claimNext("w1");
         JsonNode broken = mapper.readTree("{\"goods\": {\"title\": \"itemId 없음\"}, \"skus\": []}");
 
-        assertThatThrownBy(() -> service.submitResult(job.getId(), "w1", broken))
-                .isInstanceOf(NormalizationException.class);
+        SubmitOutcome outcome = service.submitResult(job.getId(), "w1", broken);
+
+        assertThat(outcome).isInstanceOf(SubmitOutcome.Rejected.class);
+        assertThat(((SubmitOutcome.Rejected) outcome).reason()).contains("itemId");
 
         assertThat(jobRepository.findById(job.getId()))
                 .get()

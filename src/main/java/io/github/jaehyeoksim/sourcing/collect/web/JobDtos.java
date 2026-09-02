@@ -55,6 +55,10 @@ public final class JobDtos {
         }
     }
 
+    /** 원본을 해석할 수 없어 확정 실패로 끝난 경우의 응답 */
+    public record RejectedResponse(Long jobId, JobStatus status, String reason) {
+    }
+
     public record ProductResponse(Long id, String siteCode, String externalId, String title, int optionCount) {
     }
 }
