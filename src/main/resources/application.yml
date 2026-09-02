@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: sourcing-pipeline
+  datasource:
+    url: jdbc:h2:file:./data/sourcing;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: Asia/Seoul
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+collector:
+  # 워커(크롬 확장 탭)가 동시에 점유할 수 있는 최대 작업 수
+  max-concurrent-jobs: 3
+  # 작업 클레임 후 이 시간 안에 결과가 없으면 죽은 워커로 보고 회수한다
+  claim-timeout: 3m
+  # 재시도 상한과 지수 백오프 기준 간격
+  max-attempts: 3
+  retry-base-delay: 30s
+
+logging:
+  level:
+    io.github.jaehyeoksim.sourcing: DEBUG
