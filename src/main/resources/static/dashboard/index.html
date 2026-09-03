@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sourcing-pipeline · 현황</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --line: #262b35;
+    --text: #e6e8ec;
+    --muted: #8b93a3;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --run: #60a5fa;
+    --fail: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.6 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 { margin: 0; font-size: 16px; letter-spacing: -.2px; }
+  header .meta { color: var(--muted); font-size: 12px; margin-left: auto; }
+  main { padding: 24px; display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  section h2 { margin: 0 0 14px; font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: .3px; }
+  .counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .count { background: #12151b; border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .count b { display: block; font-size: 22px; font-weight: 600; line-height: 1.2; }
+  .count span { font-size: 11px; color: var(--muted); }
+  .count.ok b { color: var(--ok); }
+  .count.run b { color: var(--run); }
+  .count.warn b { color: var(--warn); }
+  .count.fail b { color: var(--fail); }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; }
+  td.reason { color: var(--fail); }
+  td.num { color: var(--muted); white-space: nowrap; }
+  .empty { color: var(--muted); font-size: 12px; padding: 10px 2px; }
+  .bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: #12151b; margin-bottom: 14px; }
+  .bar i { display: block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+  .legend b { color: var(--text); font-weight: 600; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+  .err { color: var(--fail); padding: 24px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>sourcing-pipeline</h1>
+  <span class="meta">3초마다 갱신 · <span id="updated">—</span></span>
+</header>
+
+<main id="root">
+  <section>
+    <h2>수집 큐</h2>
+    <div class="counts" id="job-counts"></div>
+    <div id="job-bar"></div>
+    <table>
+      <thead><tr><th>최근 실패</th><th>사이트</th><th>시도</th></tr></thead>
+      <tbody id="job-failures"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>오픈마켓 등록</h2>
+    <div class="counts" id="listing-counts"></div>
+    <div id="listing-bar"></div>
+    <div id="failure-codes"></div>
+    <table>
+      <thead><tr><th>최근 실패</th><th>마켓</th><th>시도</th></tr></thead>
+      <tbody id="listing-failures"></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function get(path) {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(path + ' → ' + res.status);
+  return res.json();
+}
+
+function counts(el, items) {
+  el.innerHTML = items
+    .map((i) => `<div class="count ${i.tone}"><b>${i.value}</b><span>${i.label}</span></div>`)
+    .join('');
+}
+
+// 상태 비율을 한 줄로 보여준다. 숫자만 보면 "실패가 늘고 있는지"가 눈에 안 들어온다.
+function bar(el, parts) {
+  const total = parts.reduce((sum, p) => sum + p.value, 0);
+  if (total === 0) {
+    el.innerHTML = '<div class="empty">아직 처리된 작업이 없습니다.</div>';
+    return;
+  }
+  const segments = parts
+    .filter((p) => p.value > 0)
+    .map((p) => `<i style="width:${(p.value / total) * 100}%;background:${p.color}"></i>`)
+    .join('');
+  const legend = parts
+    .map((p) => `<span><i class="dot" style="background:${p.color}"></i>${p.label} <b>${p.value}</b></span>`)
+    .join('');
+  el.innerHTML = `<div class="bar">${segments}</div><div class="legend">${legend}</div>`;
+}
+
+function rows(el, list, columns, emptyText) {
+  if (list.length === 0) {
+    el.innerHTML = `<tr><td colspan="3" class="empty">${emptyText}</td></tr>`;
+    return;
+  }
+  el.innerHTML = list.map((row) => `<tr>${columns(row)}</tr>`).join('');
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+async function refresh() {
+  const [jobStats, listingStats, jobFailures, listingFailures] = await Promise.all([
+    get('/api/v1/jobs/stats'),
+    get('/api/v1/listings/stats'),
+    get('/api/v1/jobs?status=FAILED&limit=8'),
+    get('/api/v1/listings?status=FAILED&limit=8'),
+  ]);
+
+  counts($('job-counts'), [
+    { label: '대기', value: jobStats.pending, tone: 'warn' },
+    { label: '수집 중', value: jobStats.running, tone: 'run' },
+    { label: '성공', value: jobStats.succeeded, tone: 'ok' },
+    { label: '실패', value: jobStats.failed, tone: 'fail' },
+  ]);
+  bar($('job-bar'), [
+    { label: '성공', value: jobStats.succeeded, color: '#4ade80' },
+    { label: '수집 중', value: jobStats.running, color: '#60a5fa' },
+    { label: '대기', value: jobStats.pending, color: '#fbbf24' },
+    { label: '실패', value: jobStats.failed, color: '#f87171' },
+  ]);
+  rows($('job-failures'), jobFailures, (j) =>
+    `<td class="reason">${escapeHtml(j.lastError) || '사유 없음'}</td>
+     <td>${escapeHtml(j.siteCode)}</td>
+     <td class="num">${j.attempt}/${j.maxAttempts}</td>`,
+    '실패한 수집이 없습니다.');
+
+  counts($('listing-counts'), [
+    { label: '대기', value: listingStats.queued, tone: 'warn' },
+    { label: '전송 중', value: listingStats.sending, tone: 'run' },
+    { label: '등록됨', value: listingStats.listed, tone: 'ok' },
+    { label: '실패', value: listingStats.failed, tone: 'fail' },
+  ]);
+  bar($('listing-bar'), [
+    { label: '등록됨', value: listingStats.listed, color: '#4ade80' },
+    { label: '전송 중', value: listingStats.sending, color: '#60a5fa' },
+    { label: '대기', value: listingStats.queued, color: '#fbbf24' },
+    { label: '실패', value: listingStats.failed, color: '#f87171' },
+  ]);
+
+  // 실패를 건수가 아니라 사유별로 본다. 무엇을 먼저 고쳐야 하는지는 여기서 나온다.
+  const codes = Object.entries(listingStats.failuresByCode || {});
+  $('failure-codes').innerHTML = codes.length === 0
+    ? ''
+    : `<div class="legend">${codes
+        .map(([code, n]) => `<span>${escapeHtml(code)} <b>${n}</b></span>`)
+        .join('')}</div>`;
+
+  rows($('listing-failures'), listingFailures, (l) =>
+    `<td class="reason">${escapeHtml(l.lastError) || '사유 없음'}</td>
+     <td>${escapeHtml(l.marketCode)}</td>
+     <td class="num">${l.attempt}/${l.maxAttempts}</td>`,
+    '실패한 등록이 없습니다.');
+
+  $('updated').textContent = new Date().toLocaleTimeString('ko-KR');
+}
+
+async function tick() {
+  try {
+    await refresh();
+  } catch (e) {
+    $('updated').textContent = '연결 실패';
+    console.error(e);
+  }
+}
+
+tick();
+setInterval(tick, 3000);
+</script>
+</body>
+</html>

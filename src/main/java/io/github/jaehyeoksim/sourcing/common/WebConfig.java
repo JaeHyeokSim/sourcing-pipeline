@@ -2,6 +2,7 @@ package io.github.jaehyeoksim.sourcing.common;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -17,5 +18,17 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOriginPatterns("chrome-extension://*", "http://localhost:*")
                 .allowedMethods("GET", "POST")
                 .allowedHeaders("*");
+    }
+
+    /**
+     * 서버를 띄우면 바로 현황 화면이 보이게 한다.
+     *
+     * <p>정적 리소스 핸들러는 디렉터리 경로를 index.html 로 풀어주지 않는다(루트만 예외).
+     * `/dashboard/` 로 들어와도 열리도록 포워딩을 명시한다.
+     */
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addRedirectViewController("/", "/dashboard/");
+        registry.addViewController("/dashboard/").setViewName("forward:/dashboard/index.html");
     }
 }
