@@ -31,6 +31,19 @@ collector:
   max-attempts: 3
   retry-base-delay: 30s
 
+listing:
+  # 마켓 전송 재시도 상한과 지수 백오프 기준 간격
+  max-attempts: 3
+  retry-base-delay: 60s
+  # 디스패처가 한 번에 집어가는 건수
+  batch-size: 5
+  # 이 시간 안에 마켓 응답이 없으면 전송이 끊긴 것으로 보고 회수한다
+  send-timeout: 2m
+  # 판매가 계산 근거 (원가 x 환율 x (1 + 마진율), 100원 단위 올림)
+  exchange-rate: 195.0
+  margin-rate: 0.30
+  round-to: 100
+
 logging:
   level:
     io.github.jaehyeoksim.sourcing: DEBUG

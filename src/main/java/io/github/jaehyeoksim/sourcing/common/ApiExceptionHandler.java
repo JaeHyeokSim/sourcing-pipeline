@@ -1,6 +1,7 @@
 package io.github.jaehyeoksim.sourcing.common;
 
 import io.github.jaehyeoksim.sourcing.collect.service.JobNotFoundException;
+import io.github.jaehyeoksim.sourcing.listing.service.ListingNotFoundException;
 import io.github.jaehyeoksim.sourcing.normalize.NormalizationException;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,17 @@ public class ApiExceptionHandler {
     @ExceptionHandler(JobNotFoundException.class)
     public ResponseEntity<ApiError> notFound(JobNotFoundException e) {
         return build(HttpStatus.NOT_FOUND, "JOB_NOT_FOUND", e.getMessage());
+    }
+
+    @ExceptionHandler(ListingNotFoundException.class)
+    public ResponseEntity<ApiError> notFound(ListingNotFoundException e) {
+        return build(HttpStatus.NOT_FOUND, "LISTING_NOT_FOUND", e.getMessage());
+    }
+
+    /** 알 수 없는 마켓 코드나 없는 상품처럼, 요청 자체가 성립하지 않는 경우 */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> badRequest(IllegalArgumentException e) {
+        return build(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", e.getMessage());
     }
 
     /** 정규화 실패는 같은 입력으로 재시도해도 소용없으므로 422 로 구분해 준다. */
