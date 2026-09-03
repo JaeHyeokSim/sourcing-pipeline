@@ -118,6 +118,17 @@ QUEUED ──begin──▶ SENDING ──마켓 수용──▶ LISTED
 판단 기준은 상태가 아니라 마켓 상품ID 보유 여부다 — 재전송 요청으로 상태가 QUEUED 로 돌아가도,
 이미 올라가 있다는 사실이 없어지는 것은 아니기 때문이다.
 
+**스키마는 애플리케이션이 아니라 마이그레이션이 만든다.**
+`ddl-auto: update` 로 두면 엔티티를 고칠 때마다 아무도 리뷰하지 않은 DDL 이 운영에서 조용히 실행된다.
+스키마의 출처는 Flyway 마이그레이션이고, JPA 는 `validate` 로 "지금 스키마가 매핑과 맞는가"만 확인한다.
+어긋나면 부팅이 실패한다 — 런타임에 이상한 쿼리가 나가는 것보다 낫다.
+
+같은 이유로 **엔티티에서 벤더가 갈리는 매핑을 걷어냈다.**
+`@Enumerated(STRING)` 은 H2 에서 네이티브 `enum(...)`, PostgreSQL 에서 `varchar` 로 갈라지고,
+`@Lob String` 은 PostgreSQL 에서 `oid`(라지 오브젝트)가 된다 — 값이 테이블 밖에 저장돼
+별도 API 로만 읽히고, 행을 지워도 오브젝트가 남는다.
+둘 다 문자열 컬럼으로 고정해, 개발용 H2 와 운영용 PostgreSQL 이 같은 스키마를 갖게 했다.
+
 **판매가 계산은 한 곳에만 둔다.**
 어댑터마다 각자 계산하게 두면 같은 상품이 마켓마다 다른 값으로 올라간다.
 `PricingPolicy` 가 환율·마진·절상 단위를 적용해 금액을 정하고, 어댑터는 결과만 받는다.
@@ -195,6 +206,31 @@ curl http://localhost:8080/api/v1/listings/stats
 `[NOID]` 는 "성공했다면서 상품ID 를 안 주는" 응답이다. 실제 연동은 `MarketClient` 구현체를
 하나 더 만들어 갈아끼우면 되고, 큐·재시도·상태 추적 코드는 그대로 둔다.
 
+## PostgreSQL 로 실행
+
+기본은 H2(파일)라 아무것도 설치하지 않고 바로 뜬다. PostgreSQL 로 돌리려면 프로파일만 바꾼다.
+
+```bash
+docker compose up -d
+./gradlew bootRun --args='--spring.profiles.active=postgres'
+```
+
+스키마는 Flyway 가 만든다. 벤더별로 폴더가 나뉘어 있다.
+
+```
+src/main/resources/db/migration/
+├── h2/V1__init.sql          # 개발·테스트
+└── postgresql/V1__init.sql  # 운영
+```
+
+두 파일의 차이는 `payload` 컬럼 한 줄뿐이다(H2 에는 길이 없는 `varchar` 가 없다).
+그 한 줄 때문에 폴더를 나눴다 — 하나로 합치려다 타입이 미묘하게 어긋나면
+`ddl-auto: validate` 가 부팅을 막는다.
+
+> 이 저장소의 테스트는 H2 에서 돈다. 운영 DB 와 같은 엔진으로 테스트하는 편이 맞고
+> (Testcontainers), 그러려면 테스트에 Docker 가 필요해진다. 클론해서 `./gradlew test` 만
+> 치면 도는 상태를 우선했다.
+
 ## API
 
 ### 수집
@@ -256,11 +292,11 @@ listing:
 
 ## 기술 스택
 
-Java 21 · Spring Boot 4.1 · Spring Data JPA · H2 · Gradle · Chrome Extension MV3
+Java 21 · Spring Boot 4.1 · Spring Data JPA · Flyway · PostgreSQL / H2 · Gradle · Chrome Extension MV3
 
 ## 로드맵
 
 - [x] 1단계 — 수집기: 큐·재시도·정규화·크롬 확장 워커
 - [x] 2단계 — 오픈마켓 연동: 마켓별 어댑터, 등록 큐, 규칙 선검사, 실패 재전송, 등록 상태 추적
 - [x] 수집·등록 현황 대시보드
-- [ ] PostgreSQL + Flyway 로 전환
+- [x] PostgreSQL + Flyway 로 전환 (기본은 H2, 프로파일로 전환)

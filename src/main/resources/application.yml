@@ -7,10 +7,15 @@ spring:
     password:
   jpa:
     hibernate:
-      ddl-auto: update
+      # 스키마의 출처는 Flyway 마이그레이션이고, JPA 는 그 스키마가 매핑과 맞는지 확인만 한다.
+      # update 로 두면 운영에서 아무도 의도하지 않은 DDL 이 조용히 실행된다.
+      ddl-auto: validate
     open-in-view: false
     properties:
       hibernate.jdbc.time_zone: Asia/Seoul
+  flyway:
+    # H2 와 PostgreSQL 은 타입이 미묘하게 달라(길이 없는 varchar 등) 벤더별로 나눠 둔다.
+    locations: classpath:db/migration/{vendor}
   h2:
     console:
       enabled: true

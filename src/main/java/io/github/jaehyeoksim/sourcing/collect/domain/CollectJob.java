@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.time.Duration;
 import java.time.Instant;
 import lombok.AccessLevel;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -44,7 +46,13 @@ public class CollectJob {
     @Column(name = "source_url", nullable = false, length = 1024)
     private String sourceUrl;
 
+    /**
+     * H2 는 네이티브 ENUM 타입을 지원해서, 그대로 두면 H2 에는 {@code enum(...)},
+     * PostgreSQL 에는 {@code varchar} 로 서로 다른 컬럼이 만들어진다.
+     * 스키마를 벤더 간 동일하게 유지하려고 문자열로 고정한다.
+     */
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 16)
     private JobStatus status;
 

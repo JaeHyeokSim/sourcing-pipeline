@@ -1,0 +1,13 @@
+# PostgreSQL 로 띄울 때 쓰는 프로파일.
+#   docker compose up -d
+#   ./gradlew bootRun --args='--spring.profiles.active=postgres'
+#
+# 기본(H2)과 다른 것은 접속 정보뿐이다. 스키마는 Flyway 가 db/migration/postgresql 에서 만든다.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sourcing
+    username: sourcing
+    password: sourcing
+  h2:
+    console:
+      enabled: false
