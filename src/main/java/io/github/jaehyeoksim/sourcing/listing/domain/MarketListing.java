@@ -90,6 +90,10 @@ public class MarketListing {
     @Column(name = "last_error", length = 1000)
     private String lastError;
 
+    /** 마지막 전송에서 반려를 보고 자동으로 고친 내용. 보정 없이 끝났으면 비어 있다. */
+    @Column(name = "correction_note", length = 500)
+    private String correctionNote;
+
     @Column(name = "listed_at")
     private Instant listedAt;
 
@@ -171,6 +175,17 @@ public class MarketListing {
         this.lastError = truncate(reason);
         this.status = ListingStatus.FAILED;
         this.sentAt = null;
+        touch();
+    }
+
+    /** 이번 전송의 보정 이력으로 덮어쓴다. 이전 전송의 보정이 남아 있으면 지금도 보정된 것처럼 보인다. */
+    public void recordCorrections(java.util.List<String> corrections) {
+        if (corrections == null || corrections.isEmpty()) {
+            this.correctionNote = null;
+        } else {
+            String joined = String.join(" / ", corrections);
+            this.correctionNote = joined.length() <= 500 ? joined : joined.substring(0, 500);
+        }
         touch();
     }
 

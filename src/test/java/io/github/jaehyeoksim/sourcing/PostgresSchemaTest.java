@@ -88,7 +88,7 @@ class PostgresSchemaTest {
 
         String version = jdbc.queryForObject(
                 "select version from flyway_schema_history order by installed_rank desc limit 1", String.class);
-        assertThat(version).isEqualTo("1");
+        assertThat(version).isEqualTo("2");
 
         List<String> tables = jdbc.queryForList(
                 "select table_name from information_schema.tables where table_schema = 'public' order by table_name",

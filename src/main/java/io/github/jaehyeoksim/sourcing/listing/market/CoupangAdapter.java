@@ -19,6 +19,9 @@ public class CoupangAdapter implements MarketAdapter {
     private static final MarketRules RULES =
             new MarketRules(100, 50, true, 1000L, List.of("최저가", "1위"));
 
+    /** 해외 배송 상품의 기본 반품배송비(원). 카테고리별 상한은 응답을 받아봐야 알 수 있다. */
+    static final long DEFAULT_RETURN_CHARGE = 5000L;
+
     @Override
     public String marketCode() {
         return "coupang";
@@ -34,6 +37,9 @@ public class CoupangAdapter implements MarketAdapter {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("sellerProductName", product.getTitle());
         payload.put("displayCategoryCode", "0");
+        // 수집 상품에는 브랜드 정보가 없다. 마켓이 요구하면 반려 보정에서 채운다.
+        payload.put("brand", "");
+        payload.put("returnCharge", DEFAULT_RETURN_CHARGE);
         payload.put("items", toItems(product, sellingPrice));
         return payload;
     }

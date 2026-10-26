@@ -163,7 +163,20 @@ public class ListingService {
     /** 마켓 응답을 상태에 반영한다. */
     @Transactional
     public MarketListing completeSend(Long listingId, String payloadHash, MarketResult result) {
+        return completeSend(listingId, payloadHash, result, List.of());
+    }
+
+    /**
+     * 마켓 응답을 상태에 반영한다.
+     *
+     * @param corrections 이번 전송에서 반려를 보고 고친 내용. 성공했어도 남긴다 —
+     *                    셀러가 입력한 값과 마켓에 올라간 값이 다르다는 사실은 알려야 한다.
+     */
+    @Transactional
+    public MarketListing completeSend(
+            Long listingId, String payloadHash, MarketResult result, List<String> corrections) {
         MarketListing listing = mustFind(listingId);
+        listing.recordCorrections(corrections);
         switch (result) {
             case MarketResult.Accepted(String marketProductId) -> {
                 if (marketProductId == null || marketProductId.isBlank()) {

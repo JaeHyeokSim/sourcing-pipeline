@@ -36,7 +36,25 @@ public class SimulatedMarketClient implements MarketClient {
         if (title.startsWith("[NOID]")) {
             return new MarketResult.Accepted("   ");
         }
+        // 응답에 고칠 값이 들어 있는 반려. 표시는 여러 개 붙일 수 있고, 붙은 순서와 무관하게 하나씩 걸린다.
+        if (title.contains("[CHARGE_CAP]") && charge(payload) > 3000) {
+            return new MarketResult.Rejected(
+                    "CHARGE_LIMIT", "반품배송비는 0원 ~ 3,000원 사이로 입력해 주세요.", false);
+        }
+        if (title.contains("[BRAND]") && !"GENERIC".equals(payload.get("brand"))) {
+            return new MarketResult.Rejected(
+                    "BRAND_REQUIRED", "브랜드 정보가 필요합니다. 올바른 Brand ID와 Brand Name을 입력해 주세요.", false);
+        }
+        if (title.contains("[BRAND_IN_TITLE]")) {
+            // 상품명에 등록 브랜드명이 들어 있으면 GENERIC 도 거절된다. 상품명은 자동으로 고치지 않는다.
+            return new MarketResult.Rejected(
+                    "BRAND_REQUIRED", "브랜드 정보가 필요합니다. 올바른 Brand ID와 Brand Name을 입력해 주세요.", false);
+        }
         return new MarketResult.Accepted(marketCode.toUpperCase() + "-" + UUID.randomUUID().toString().substring(0, 8));
+    }
+
+    private static long charge(Map<String, Object> payload) {
+        return payload.get("returnCharge") instanceof Number n ? n.longValue() : 0L;
     }
 
     private static String title(Map<String, Object> payload) {

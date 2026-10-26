@@ -30,6 +30,7 @@ public final class ListingDtos {
             Instant nextRunAt,
             String lastErrorCode,
             String lastError,
+            String correctionNote,
             Instant listedAt) {
 
         public static ListingResponse from(MarketListing listing) {
@@ -44,6 +45,7 @@ public final class ListingDtos {
                     listing.getNextRunAt(),
                     listing.getLastErrorCode(),
                     listing.getLastError(),
+                    listing.getCorrectionNote(),
                     listing.getListedAt());
         }
     }
