@@ -33,6 +33,14 @@ public interface CollectJobRepository extends JpaRepository<CollectJob, Long> {
             """)
     List<CollectJob> findClaimable(@Param("now") Instant now, Limit limit);
 
+    /**
+     * 클레임 게이트 행을 잠근다. 트랜잭션이 끝날 때까지 다른 클레임은 여기서 기다린다.
+     * 상한 판단(개수 세기)과 점유를 한 덩어리로 만들기 위한 것으로, 후보 행 잠금만으로는
+     * 동시에 들어온 요청이 같은 RUNNING 개수를 보고 함께 통과해 상한을 넘긴다.
+     */
+    @Query(value = "select id from collect_claim_gate where id = 1 for update", nativeQuery = true)
+    Integer lockClaimGate();
+
     /** lease 가 만료된 채 RUNNING 으로 남은 작업 (워커가 죽었거나 탭이 닫힌 경우) */
     @Query("""
             select j from CollectJob j

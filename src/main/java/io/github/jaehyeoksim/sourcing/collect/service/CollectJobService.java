@@ -71,9 +71,13 @@ public class CollectJobService {
 
     /**
      * 워커가 다음 작업을 점유한다. 동시 실행 상한에 걸리면 빈 값을 돌려준다.
+     *
+     * <p>게이트 행을 먼저 잠가 클레임끼리 줄을 세운다. 잠그는 구간은 개수 세기·후보 조회·상태 변경뿐이라
+     * 수 ms 수준이고, 수집 자체(탭 작업)는 잠금 밖에서 일어나므로 처리량 손해는 무시할 만하다.
      */
     @Transactional
     public Optional<CollectJob> claimNext(String workerId) {
+        jobRepository.lockClaimGate();
         long running = jobRepository.countByStatus(JobStatus.RUNNING);
         if (running >= properties.maxConcurrentJobs()) {
             log.debug("동시 실행 상한 도달 ({}/{}), 클레임 보류", running, properties.maxConcurrentJobs());
